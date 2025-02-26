@@ -79,6 +79,10 @@ export class Wallet {
    * Logout the user
    */
   signOut = async () => {
+    const SIGN_IN_AUTH_KEY = "signedMessageAuth"
+    const SIGN_IN_NONCE_KEY = "signInNonce";
+    localStorage.removeItem(SIGN_IN_AUTH_KEY);
+    localStorage.removeItem(SIGN_IN_NONCE_KEY);
     const selectedWallet = await (await this.selector).wallet();
     selectedWallet.signOut();
   };
@@ -181,6 +185,15 @@ export class Wallet {
   signAndSendTransactions = async ({ transactions }) => {
     const selectedWallet = await (await this.selector).wallet();
     return selectedWallet.signAndSendTransactions({ transactions });
+  };
+
+  /**
+   * Signs a message
+   * 
+   */
+  signMessage = async ( messageParams ) => {
+    const selectedWallet = await (await this.selector).wallet();
+    return selectedWallet.signMessage(messageParams);
   };
 
   /**
