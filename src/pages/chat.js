@@ -3,12 +3,10 @@ import axios from 'axios';
 
 import { NearContext } from '@/wallets/near';
 import { useRouter } from 'next/router';
+import { RECIPIENT, SIGN_MESSAGE, SIGN_IN_AUTH_KEY, SIGN_IN_NONCE_KEY } from '@/utils/openai';
+import { getRecipesListFromData } from '@/utils/recipeparser';
 
 const CALLBACK_URL = "http://localhost:3000/chat";
-const SIGN_MESSAGE = "Welcome to NEAR AI";
-const APP = "ai.near";
-const SIGN_IN_AUTH_KEY = "signedMessageAuth"
-const SIGN_IN_NONCE_KEY = "signInNonce";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -16,6 +14,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [userAuthenticated, setUserAuthenticated] = useState(false);
+  const [currentThreadId, setCurrentThreadId] = useState('');
+  //const [currentThread, setCurrentThread] = useState(null);
 
   const { signedAccountId, wallet } = useContext(NearContext);
 
@@ -31,18 +32,26 @@ export default function ChatPage() {
       if(params.has("accountId") && params.has("signature") && params.has("publicKey")){
         // Web wallets like MyNearWallet redirect you back to the app, so this is how we check for the auth info
         console.log("User was redirected after signing a message.");
-        const authToken = {
+        const authJson = {
           accountId: signedAccountId,
           publicKey: params.get("publicKey"),
           signature: params.get("signature"),
           callbackUrl: CALLBACK_URL,
           nonce: localStorage.getItem(SIGN_IN_NONCE_KEY)
         };
-        localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authToken));
+        localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authJson));
         router.replace(router.pathname);
+        //createOpenAiInstance(createAuthToken(authJson));
+        setUserAuthenticated(true);
+      }
+      else{
+        if(localStorage.getItem(SIGN_IN_AUTH_KEY)){
+          setUserAuthenticated(true);
+        }
       }
     } else {
       console.log("User is not signed in");
+      setUserAuthenticated(false);
     }
   }, [signedAccountId, wallet]);
 
@@ -52,14 +61,16 @@ export default function ChatPage() {
       // Add user message
       setMessages(prev => [...prev, { role: 'user', content: inputValue }]);
       
-      // Get AI response
+      // Get AI response (direct method)
       const response = await axios.post('/api/openai', {
         input: inputValue,
-        auth: authToken
-      })
+        auth: authToken,
+        threadId: '' //currentThreadId
+      });
 
       if(response.status === 200){
         const threadId = response.data.data;
+        //setCurrentThreadId(threadId); // Keep commented out until threads handling is figured out
         console.log("Thread ID:", threadId);
         // Add AI response
         const messagesResponse = await axios.post('/api/threads/' + threadId, {
@@ -67,11 +78,41 @@ export default function ChatPage() {
         });
 
         const messagesInThread = messagesResponse.data.data.data;
-        const assistantMessage = messagesInThread[1]; // Skip the first one because it's a system log
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: assistantMessage.content[0].text.value
-        }]);
+        // TODO: display recipes to user, each with button to Save, Edit(?), or Discard
+        const recipes_data_responses = [];
+        for(let i = 0; i < messagesInThread.length; i++){
+          const message = messagesInThread[i];
+          const contentString = message.content[0].text.value;
+          try {
+            const contentData = JSON.parse(contentString);
+            if(Object.hasOwn(contentData, "query")){
+              // This is the main response with all the recipes data
+              console.log(contentData);
+              setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: "Here are some recipes I found for you:\n" + contentString
+              }]);
+              console.log(getRecipesListFromData(contentData));
+              break;
+            }
+          } catch (e) {
+            if(message.role === "assistant"){
+              // Assume it's likely a normal message
+              console.log(contentString);
+              setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: contentString
+              }]);
+              continue;
+            }
+            else if(message.role === "user"){
+              continue;
+            }
+            else {
+              console.log(e);
+            }
+          }
+        }
       }
       
       setInputValue('');
@@ -82,10 +123,37 @@ export default function ChatPage() {
     }
   };
 
+  const promptSignMessage = async () => {
+    // Prompt the user to sign a message in order to authenticate
+    const challenge = Date.now().toString().padStart(32, '0');
+    const buf = Buffer.from(challenge);
+    localStorage.setItem(SIGN_IN_NONCE_KEY, challenge);
+    const messageParams = {
+      message: SIGN_MESSAGE,
+      recipient: RECIPIENT,
+      nonce: buf,
+      callbackUrl: CALLBACK_URL
+    }
+    wallet.signMessage(messageParams).then(signedMessage => {
+      // Save the user auth token
+      const authJson = {
+        accountId: signedMessage.accountId,
+        publicKey: signedMessage.publicKey,
+        signature: signedMessage.signature,
+        callbackUrl: CALLBACK_URL,
+        nonce: localStorage.getItem(SIGN_IN_NONCE_KEY)
+      };
+      localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authJson));
+      //createOpenAiInstance(createAuthToken(authJson));
+      setUserAuthenticated(true);
+    }).catch((error) => { console.error(error); });
+  
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!inputValue.trim()) return
+    if (!inputValue.trim()) return;
 
     if(!signedAccountId){
       alert("You are not signed in.");
@@ -101,29 +169,7 @@ export default function ChatPage() {
         sendMessage(JSON.parse(auth));
       }
       else{
-        // Prompt the user to sign a message in order to authenticate
-        const challenge = Date.now().toString().padStart(32, '0');
-        const buf = Buffer.from(challenge);
-        localStorage.setItem(SIGN_IN_NONCE_KEY, challenge);
-        const messageParams = {
-          message: SIGN_MESSAGE,
-          recipient: APP,
-          nonce: buf,
-          callbackUrl: CALLBACK_URL
-        }
-        const signedMessage = await wallet.signMessage(messageParams);
-      
-        // Save the user auth token
-        const authJson = {
-          accountId: signedMessage.accountId,
-          publicKey: signedMessage.publicKey,
-          signature: signedMessage.signature,
-          callbackUrl: CALLBACK_URL,
-          nonce: localStorage.getItem(SIGN_IN_NONCE_KEY)
-        };
-        localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authJson));
-
-        sendMessage(authJson);
+        promptSignMessage();
       }
       
 
@@ -157,6 +203,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input Form */}
+        {(signedAccountId && userAuthenticated) ? (
         <form onSubmit={handleSubmit} className="border-t p-4">
           <div className="flex gap-2">
             <input
@@ -180,6 +227,23 @@ export default function ChatPage() {
             </button>
           </div>
         </form>
+        ) : (
+          <div className="flex justify-center p-4">
+            <button
+              onClick={() => {
+                if(signedAccountId){
+                  promptSignMessage();
+                }
+                else{
+                  alert("Log in with your wallet first.");
+                }
+              }}
+              className="px-4 py-2 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Sign Message to Chat
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

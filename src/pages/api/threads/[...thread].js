@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { OPENAI_API_BASE, SIGN_MESSAGE, RECIPIENT } from "../openai";
+import { OPENAI_API_BASE, SIGN_MESSAGE, RECIPIENT } from "../../../utils/openai";
 
 export default async function handler(req, res) {
   const { thread } = req.query;

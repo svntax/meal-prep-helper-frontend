@@ -4,6 +4,7 @@ import { useEffect, useState, useContext } from 'react';
 
 import { NearContext } from '@/wallets/near';
 import NearLogo from '/public/near-logo.svg';
+import { SIGN_IN_AUTH_KEY, createOpenAiInstance, isUserAuthenticated } from '@/utils/openai';
 
 export const Navigation = () => {
   const { signedAccountId, wallet } = useContext(NearContext);
@@ -16,6 +17,13 @@ export const Navigation = () => {
     if (signedAccountId) {
       setAction(() => wallet.signOut);
       setLabel(`Logout ${signedAccountId}`);
+      const authJsonString = localStorage.getItem(SIGN_IN_AUTH_KEY);
+      const authJson = JSON.parse(authJsonString);
+      if(authJson){
+        if(!isUserAuthenticated(authJson)){
+          createOpenAiInstance(authJson);
+        }
+      }
     } else {
       setAction(() => wallet.signIn);
       setLabel('Login');

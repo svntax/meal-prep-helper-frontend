@@ -17,6 +17,7 @@ import { setupBitteWallet } from '@near-wallet-selector/bitte-wallet';
 // ethereum wallets
 import { wagmiConfig, web3Modal } from '@/wallets/web3modal';
 import { setupEthereumWallets } from "@near-wallet-selector/ethereum-wallets";
+import { SIGN_IN_AUTH_KEY, SIGN_IN_NONCE_KEY, clearOpenAiSession } from '@/utils/openai';
 
 const THIRTY_TGAS = '30000000000000';
 const NO_DEPOSIT = '0';
@@ -79,10 +80,9 @@ export class Wallet {
    * Logout the user
    */
   signOut = async () => {
-    const SIGN_IN_AUTH_KEY = "signedMessageAuth"
-    const SIGN_IN_NONCE_KEY = "signInNonce";
     localStorage.removeItem(SIGN_IN_AUTH_KEY);
     localStorage.removeItem(SIGN_IN_NONCE_KEY);
+    clearOpenAiSession();
     const selectedWallet = await (await this.selector).wallet();
     selectedWallet.signOut();
   };

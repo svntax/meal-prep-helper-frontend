@@ -1,9 +1,6 @@
 import axios from 'axios';
 
-export const OPENAI_API_BASE = 'https://api.near.ai/v1';
-export const NEAR_AGENT_ID = 'svntax.near/pm-agent/latest';
-export const SIGN_MESSAGE = 'Welcome to NEAR AI';
-export const RECIPIENT = 'ai.near';
+import { OPENAI_API_BASE, NEAR_AGENT_ID, createAuthToken } from "@/utils/openai";
 
 // Format for auth token
 /* const bearer = {
@@ -17,26 +14,32 @@ export const RECIPIENT = 'ai.near';
 } */
 
 export default async function handler(req, res) {
-  const { input, auth } = req.body;
-  const authToken = {
-    "account_id": auth.accountId,
-    "signature": auth.signature,
-    "public_key": auth.publicKey,
-    "callback_url": auth.callbackUrl,
-    "nonce": auth.nonce,
-    "message": SIGN_MESSAGE,
-    "recipient": RECIPIENT,
-    "on_behalf_of": null
+  const { input, auth, threadId } = req.body;
+  const authToken = createAuthToken(auth);
+
+  const requestBody = {
+    "agent_id": NEAR_AGENT_ID,
+    "new_message": input,
+    "max_iterations": "1"
   };
 
+  let threadEndpoint = '/threads/runs';
+  // TODO: reuse threads?
+  /* if(threadId && threadId.length > 0){
+    threadEndpoint =  `/threads/${threadId}/runs`;
+    requestBody.assistant_id = NEAR_AGENT_ID;
+  } */
+
   try {
-    const response = await axios.post(
-      OPENAI_API_BASE + '/threads/runs',
-      {
-        "agent_id": NEAR_AGENT_ID,
-        "new_message": input,
-        "max_iterations": "1"
-      },
+    // TODO: Running this code (create thread, message, run and stream) fails on client because of CORS
+    // Might need to move this to server side, test if that fixes the issue
+    /*const thread = await createThread();
+        const message = await addMessage(thread.id, "user", inputValue);
+        let run = createRunWithStream(thread.id, NEAR_AGENT_ID);
+        console.log(run);*/
+     const response = await axios.post(
+      OPENAI_API_BASE + threadEndpoint,
+      requestBody,
       {
         headers: {
           'Content-Type': 'application/json',
