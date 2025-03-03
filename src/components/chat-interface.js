@@ -8,13 +8,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function ChatInterface() {
+export default function ChatInterface({ sendMessage, updateUserInput, fetchingInProgress }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (event) => {
     setInput(event.target.value);
+    updateUserInput(event.target.value);
   };
 
   // TODO: AI agent call
@@ -33,6 +34,7 @@ export default function ChatInterface() {
             { id: messages.length + 1, role: "assistant", content: "A delicious recipe is on its way!" },
           ]);
           setIsLoading(false);
+          sendMessage();
         }, 1000);
       }, 1000);
     }
@@ -58,21 +60,21 @@ export default function ChatInterface() {
                 <Button
                   variant="outline"
                   className="w-full justify-center"
-                  onClick={() => setInput("What can I make with chicken and broccoli?")}
+                  onClick={() => { setInput("What can I make with chicken and broccoli?"); updateUserInput("What can I make with chicken and broccoli?"); }}
                 >
                   What can I make with chicken and broccoli?
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full justify-center"
-                  onClick={() => setInput("Give me a vegetarian pasta recipe")}
+                  onClick={() => { setInput("Give me a vegetarian pasta recipe"); updateUserInput("Give me a vegetarian pasta recipe"); }}
                 >
                   Give me a vegetarian pasta recipe
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full justify-center"
-                  onClick={() => setInput("I want a breakfast that I can make in 15 minutes")}
+                  onClick={() => { setInput("I want a breakfast that I can make in 15 minutes"); updateUserInput("I want a breakfast that I can make in 15 minutes"); }}
                 >
                   I want a breakfast that I can make in 15 minutes
                 </Button>
@@ -95,7 +97,7 @@ export default function ChatInterface() {
                   </div>
                 </div>
               ))}
-              {isLoading && (
+              {(isLoading || fetchingInProgress) && (
                 <div className="flex justify-start">
                   <div className="flex max-w-[80%] items-start gap-2 rounded-lg bg-muted px-4 py-2">
                     <Bot className="mt-1 h-4 w-4 shrink-0" />
@@ -129,7 +131,7 @@ export default function ChatInterface() {
             onChange={handleInputChange}
             className={`flex-1 ring-2 ring-orange-500`}
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className={"!ml-1"}>
+          <Button type="submit" size="icon" disabled={isLoading || fetchingInProgress || !input.trim()} className={"!ml-1"}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>

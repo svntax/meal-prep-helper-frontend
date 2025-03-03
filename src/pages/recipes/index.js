@@ -140,7 +140,7 @@ function RecipeCard({ title, description, category, prepTime, cookTime, image })
       </CardHeader>
       <CardFooter className="flex justify-between">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/recipes/${title.toLowerCase().replace(/\s+/g, "-")}`}>View</Link>
+          <Link href={''/*`/recipes/${title.toLowerCase().replace(/\s+/g, "-")}`*/}>View</Link>
         </Button>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8">

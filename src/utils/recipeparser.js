@@ -55,7 +55,13 @@ const getRecipeDataFromRawString = (rawDataString) => {
         return recipeData;
     } catch (e) {
         console.error(e);
-        return {};
+        return {
+            "title": "Failed to get recipe info",
+            "description": "See the source link below",
+            "prepTime": "n/a",
+            "ingredients": [],
+            "instructions": []
+        };
     }
     
 }

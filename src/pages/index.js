@@ -1,13 +1,196 @@
 import Head from "next/head"
 import Link from "next/link"
+import axios from 'axios';
+import { useRouter } from 'next/router';
 import { ChefHat, PlusCircle, Search } from "lucide-react"
 
+import { NearContext } from '@/wallets/near';
+import { RECIPIENT, SIGN_MESSAGE, SIGN_IN_AUTH_KEY, SIGN_IN_NONCE_KEY } from '@/utils/openai';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ChatInterface from "@/components/chat-interface"
 import RecipeCarousel from "@/components/recipes/recipes-carousel"
+import { useState, useContext, useEffect } from 'react';
+import { getRecipesListFromData } from "@/utils/recipeparser";
+
+const CALLBACK_URL = "http://localhost:3000";
 
 export default function Home() {
+  const router = useRouter();
+  
+  const [isFetchingRecipes, setIsFetchingRecipes] = useState(false);
+  const [recipesList, setRecipesList] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [userAuthenticated, setUserAuthenticated] = useState(false);
+  const [currentThreadId, setCurrentThreadId] = useState('');
+
+  const { signedAccountId, wallet } = useContext(NearContext);
+
+  useEffect(() => {
+    if (!wallet) return;
+
+    if (signedAccountId) {
+      console.log("User is signed in");
+
+      const query = router.asPath;
+      const paramsString = query.substring(query.indexOf("#")).replace("#", "");
+      const params = new URLSearchParams(paramsString);
+      if(params.has("accountId") && params.has("signature") && params.has("publicKey")){
+        // Web wallets like MyNearWallet redirect you back to the app, so this is how we check for the auth info
+        console.log("User was redirected after signing a message.");
+        const authJson = {
+          accountId: signedAccountId,
+          publicKey: params.get("publicKey"),
+          signature: params.get("signature"),
+          callbackUrl: CALLBACK_URL,
+          nonce: localStorage.getItem(SIGN_IN_NONCE_KEY)
+        };
+        localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authJson));
+        router.replace(router.pathname);
+        //createOpenAiInstance(createAuthToken(authJson));
+        setUserAuthenticated(true);
+      }
+      else{
+        if(localStorage.getItem(SIGN_IN_AUTH_KEY)){
+          setUserAuthenticated(true);
+        }
+      }
+    } else {
+      console.log("User is not signed in");
+      setUserAuthenticated(false);
+    }
+  }, [signedAccountId, wallet]);
+
+  // TODO: A new thread is created every time, need to manage different threads and load them
+  const sendMessage = async (authToken) => {
+    console.log("sendMessage");
+    try {
+      // Add user message
+      setMessages(prev => [...prev, { role: 'user', content: inputValue }]);
+      
+      // Get AI response (direct method)
+      const response = await axios.post('/api/openai', {
+        input: inputValue,
+        auth: authToken,
+        threadId: '' //currentThreadId
+      });
+
+      if(response.status === 200){
+        const threadId = response.data.data;
+        //setCurrentThreadId(threadId); // Keep commented out until threads handling is figured out
+        console.log("Thread ID:", threadId);
+        // Add AI response
+        const messagesResponse = await axios.post('/api/threads/' + threadId, {
+          auth: authToken
+        });
+
+        const messagesInThread = messagesResponse.data.data.data;
+        // TODO: display recipes to user, each with button to Save, Edit(?), or Discard
+        const recipes_data_responses = [];
+        for(let i = 0; i < messagesInThread.length; i++){
+          const message = messagesInThread[i];
+          const contentString = message.content[0].text.value;
+          try {
+            const contentData = JSON.parse(contentString);
+            if(Object.hasOwn(contentData, "query")){
+              // This is the main response with all the recipes data
+              console.log(contentData);
+              setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: "Here are some recipes I found for you:\n" + contentString
+              }]);
+              //console.log(getRecipesListFromData(contentData));
+              setRecipesList(getRecipesListFromData(contentData));
+              break;
+            }
+          } catch (e) {
+            if(message.role === "assistant"){
+              // Assume it's likely a normal message
+              console.log(contentString);
+              setMessages(prev => [...prev, { 
+                role: 'assistant', 
+                content: contentString
+              }]);
+              continue;
+            }
+            else if(message.role === "user"){
+              continue;
+            }
+            else {
+              console.log(e);
+            }
+          }
+        }
+      }
+      
+      setInputValue('');
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+      setIsFetchingRecipes(false);
+    }
+  };
+
+  const promptSignMessage = async () => {
+    // Prompt the user to sign a message in order to authenticate
+    const challenge = Date.now().toString().padStart(32, '0');
+    const buf = Buffer.from(challenge);
+    localStorage.setItem(SIGN_IN_NONCE_KEY, challenge);
+    const messageParams = {
+      message: SIGN_MESSAGE,
+      recipient: RECIPIENT,
+      nonce: buf,
+      callbackUrl: CALLBACK_URL
+    }
+    wallet.signMessage(messageParams).then(signedMessage => {
+      // Save the user auth token
+      const authJson = {
+        accountId: signedMessage.accountId,
+        publicKey: signedMessage.publicKey,
+        signature: signedMessage.signature,
+        callbackUrl: CALLBACK_URL,
+        nonce: localStorage.getItem(SIGN_IN_NONCE_KEY)
+      };
+      localStorage.setItem(SIGN_IN_AUTH_KEY, JSON.stringify(authJson));
+      //createOpenAiInstance(createAuthToken(authJson));
+      setUserAuthenticated(true);
+    }).catch((error) => { console.error(error); });
+  
+  }
+
+  const handleSubmit = async () => {
+    //e.preventDefault();
+    
+    if (!inputValue.trim()) return;
+
+    if(!signedAccountId){
+      alert("You are not signed in.");
+      return;
+    }
+
+    setIsLoading(true);
+    setIsFetchingRecipes(true);
+
+    try{
+      const auth = localStorage.getItem(SIGN_IN_AUTH_KEY);
+      if(auth){
+        // User already authenticated
+        sendMessage(JSON.parse(auth));
+      }
+      else{
+        promptSignMessage();
+      }
+      
+
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  
   const saveRecipe = async (recipe) => {
     console.log(recipe);
     /* try {
@@ -102,76 +285,13 @@ export default function Home() {
             <p className="text-center text-muted-foreground">
               Get personalized recipe ideas, cooking tips, and more with our AI-powered assistant.
             </p>
-            <ChatInterface />
+            <ChatInterface sendMessage={() => { handleSubmit() } } updateUserInput={setInputValue} 
+            fetchingInProgress={isLoading}
+            />
           </div>
           <RecipeCarousel className={"mx-auto max-w-3xl space-y-4"}
-            recipes={[
-              {
-                recipe_data: {
-                  title: "Grilled Salmon with Asparagus",
-                  prepTime: "25 minutes",
-                  description: "A delicious and healthy meal that is sure to please.",
-                  ingredients: [
-                    { amount: "2", ingredient: "salmon fillets" },
-                    { amount: "1 bunch", ingredient: "asparagus" },
-                    { amount: "2 tbsp", ingredient: "olive oil" },
-                    { amount: "1 tsp", ingredient: "lemon juice" },
-                    { amount: "1 tsp", ingredient: "dill" },
-                  ],
-                  instructions: [
-                    "Preheat the grill or grill pan to medium-high heat.",
-                    "Trim the asparagus and toss with olive oil, lemon juice, and dill.",
-                    "Grill the salmon for 5-7 minutes per side, or until cooked through.",
-                    "Grill the asparagus for 3-4 minutes until tender.",
-                    "Serve the salmon with the asparagus on the side.",
-                  ],
-                },
-                source_url: "https://www.foodnetwork.com/grilled-salmon-with-asparagus",
-              },
-              {
-                recipe_data: {
-                  title: "Spaghetti Carbonara",
-                  prepTime: "20 minutes",
-                  description: "A classic Italian dish that is sure to satisfy.",
-                  ingredients: [
-                    { amount: "1 pound", ingredient: "spaghetti" },
-                    { amount: "4 slices", ingredient: "bacon, diced" },
-                    { amount: "4 cloves", ingredient: "garlic, minced" },
-                    { amount: "1/2 cup", ingredient: "parmesan cheese, grated" },
-                    { amount: "1/4 cup", ingredient: "heavy cream" },
-                  ],
-                  instructions: [
-                    "Cook the spaghetti according to package instructions.",
-                    "In a large skillet, cook the bacon until crispy. Remove the bacon and set it aside.",
-                    "In the same skillet, cook the garlic until fragrant.",
-                    "Add the cooked spaghetti to the skillet, and toss with the bacon and garlic.",
-                    "Stir in the grated parmesan cheese and heavy cream until the mixture is smooth and creamy.",
-                    "Serve the spaghetti carbonara hot.",
-                  ],
-                },
-                source_url: "https://www.foodnetwork.com/spaghetti-carbonara",
-              },
-              {
-                recipe_data: {
-                  title: "Avocado Toast",
-                  prepTime: "5 minutes",
-                  description: "A healthy and delicious breakfast or brunch option.",
-                  ingredients: [
-                    { amount: "2 slices", ingredient: "whole grain toast" },
-                    { amount: "1/2 avocado", ingredient: "peeled and diced" },
-                    { amount: "1 tsp", ingredient: "olive oil" },
-                    { amount: "1 slice", ingredient: "crumbled feta cheese" },
-                  ],
-                  instructions: [
-                    "Toast the bread to your desired level of crispness.",
-                    "In a small bowl, mix the diced avocado, olive oil, and feta cheese.",
-                    "Spread the avocado mixture on one slice of the toast, and sprinkle with the remaining feta cheese.",
-                    "Enjoy your delicious avocado toast.",
-                  ],
-                },
-                source_url: "https://www.foodnetwork.com/avocado-toast",
-              },
-            ]}
+            isLoading={isFetchingRecipes}
+            recipes={recipesList}
             onSave={(recipe) => saveRecipe(recipe)}
           />
         </section>

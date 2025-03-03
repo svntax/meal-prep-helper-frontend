@@ -27,8 +27,8 @@ const RecipeCard = ({ recipe }) => {
         <div className="w-1/2 px-6">
         <h3 className="font-bold mb-2">Ingredients</h3>
         <ul>
-          {recipe.recipe_data.ingredients.map((ingredient) => (
-            <li key={ingredient.ingredient}>
+          {recipe.recipe_data.ingredients && recipe.recipe_data.ingredients.map((ingredient, index) => (
+            <li key={index}>
               • {ingredient.amount} {ingredient.ingredient}
             </li>
           ))}
@@ -37,9 +37,9 @@ const RecipeCard = ({ recipe }) => {
         <div className="w-1/2 px-6">
         <h3 className="font-bold mb-2">Instructions</h3>
         <ol>
-          {recipe.recipe_data.instructions.map((instruction, index) => (
+          {recipe.recipe_data.instructions && recipe.recipe_data.instructions.map((instruction, index) => (
             <li key={index}>
-              {index + 1}. {instruction}
+              {instruction}
             </li>
           ))}
         </ol>

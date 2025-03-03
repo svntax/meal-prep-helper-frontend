@@ -2,7 +2,7 @@ import { useState } from "react";
 import RecipeCard from "./recipe-card";
 import LoadingIndicatorGrid from "../loading-indicators/loading-grid";
 
-const RecipeCarousel = ({ recipes, onSave, isLoading = true }) => {
+const RecipeCarousel = ({ recipes, onSave, isLoading = false }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handleNext = () => {
