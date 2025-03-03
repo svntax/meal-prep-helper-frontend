@@ -5,7 +5,6 @@ import { ChefHat, PlusCircle, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ChatInterface from "@/components/chat-interface"
-import RecipeCard from "@/components/recipes/recipe-card"
 
 export default function Home() {
   return (
@@ -14,7 +13,7 @@ export default function Home() {
         <title>Meal Prep Helper - Get Recipe Ideas</title>
         <meta
           name="description"
-          content="Ask our AI chef for recipe ideas, cooking techniques, or ingredient substitutions."
+          content="Ask our AI assisstant for recipe ideas, cooking tips, or meal plans."
         />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -63,10 +62,12 @@ export default function Home() {
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">
                   <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
-                    Get Started
+                    <Link href="/chat">
+                      Get Started
+                    </Link>
                   </Button>
                   <Button size="lg" variant="outline">
-                    Browse Recipes
+                  <Link href="/recipes">Browse Recipes</Link>
                   </Button>
                 </div>
               </div>
@@ -75,35 +76,12 @@ export default function Home() {
         </section>
         <section className="container px-4 py-12 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
-            <h2 className="text-center text-3xl font-bold">Ask Our AI Chef</h2>
+            <h2 className="text-center text-3xl font-bold">Ask Our AI Assistant</h2>
             <p className="text-center text-muted-foreground">
               Get personalized recipe ideas, cooking tips, and more with our AI-powered assistant.
             </p>
             <ChatInterface />
           </div>
-          <RecipeCard recipe={{
-            recipe_data: {
-              title: "Grilled Salmon with Asparagus",
-              prepTime: "20 minutes",
-              description: "A delicious and healthy dish that's easy to prepare.",
-              ingredients: [
-                { amount: "2", ingredient: "salmon fillets" },
-                { amount: "1 cup", ingredient: "asparagus" },
-                { amount: "2 tbsp", ingredient: "olive oil" },
-                { amount: "1 tsp", ingredient: "lemon juice" },
-                { amount: "1 tsp", ingredient: "dill" }
-              ],
-              instructions: [
-                "Preheat your grill to medium-high heat.",
-                "Trim the ends of the asparagus and cut off any tough stems.",
-                "In a bowl, mix together the olive oil, lemon juice, and dill.",
-                "Place the salmon fillets on the grill and cook for about 5 minutes on each side.",
-                "Meanwhile, toss the asparagus with the lemon dill mixture and grill for about 5 minutes until tender.",
-                "Serve the salmon and asparagus together on a plate."
-              ]
-            },
-            source_url: "https://www.foodnetwork.com/grilled-salmon-with-asparagus"
-          }} />
         </section>
       </main>
       <footer className="border-t py-6 md:py-0">

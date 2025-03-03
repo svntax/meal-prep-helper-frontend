@@ -8,31 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const dummyMessages = [
-  {
-    id: 1,
-    role: "user",
-    content: "What can I make with chicken and broccoli?",
-  },
-  {
-    id: 2,
-    role: "assistant",
-    content: "How about a Chicken and Broccoli Stir-Fry?",
-  },
-  {
-    id: 3,
-    role: "user",
-    content: "Give me a vegetarian pasta recipe",
-  },
-  {
-    id: 4,
-    role: "assistant",
-    content: "How about a Mushroom and Spinach Pasta?",
-  },
-];
-
 export default function ChatInterface() {
-  const [messages, setMessages] = useState(dummyMessages);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -45,12 +22,13 @@ export default function ChatInterface() {
     event.preventDefault();
     if (input.trim()) {
       setIsLoading(true);
+      const userMessage = { id: messages.length + 1, role: "user", content: input };
+      setMessages([...messages, userMessage]);
       setTimeout(() => {
-        setMessages([...messages, { id: messages.length + 1, role: "user", content: input }]);
 
         // Simulate assistant response
         setTimeout(() => {
-          setMessages([
+          setMessages((messages) => [ // Update messages using functional update to avoid stale state
             ...messages,
             { id: messages.length + 1, role: "assistant", content: "A delicious recipe is on its way!" },
           ]);
@@ -76,27 +54,27 @@ export default function ChatInterface() {
                   Ask me about recipe ideas, cooking techniques, or ingredient substitutions.
                 </p>
               </div>
-              <div className="w-full max-w-xs space-y-2">
+              <div className="w-full max-w-sm space-y-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-center"
                   onClick={() => setInput("What can I make with chicken and broccoli?")}
                 >
                   What can I make with chicken and broccoli?
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
+                  className="w-full justify-center"
                   onClick={() => setInput("Give me a vegetarian pasta recipe")}
                 >
                   Give me a vegetarian pasta recipe
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => setInput("How do I make a perfect risotto?")}
+                  className="w-full justify-center"
+                  onClick={() => setInput("I want a breakfast that I can make in 15 minutes")}
                 >
-                  How do I make a perfect risotto?
+                  I want a breakfast that I can make in 15 minutes
                 </Button>
               </div>
             </div>
@@ -151,7 +129,7 @@ export default function ChatInterface() {
             onChange={handleInputChange}
             className={`flex-1 ring-2 ring-orange-500`}
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+          <Button type="submit" size="icon" disabled={isLoading || !input.trim()} className={"!ml-1"}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
