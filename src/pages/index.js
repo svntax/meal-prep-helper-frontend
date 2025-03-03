@@ -13,7 +13,7 @@ import RecipeCarousel from "@/components/recipes/recipes-carousel"
 import { useState, useContext, useEffect } from 'react';
 import { getRecipesListFromData } from "@/utils/recipeparser";
 
-const CALLBACK_URL = "http://localhost:3000";
+const CALLBACK_URL = process.env.CALLBACK_URL || "http://localhost:3000";
 
 export default function Home() {
   const router = useRouter();

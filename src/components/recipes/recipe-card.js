@@ -39,7 +39,7 @@ const RecipeCard = ({ recipe }) => {
         <ol>
           {recipe.recipe_data.instructions && recipe.recipe_data.instructions.map((instruction, index) => (
             <li key={index}>
-              {instruction}
+              • {instruction}
             </li>
           ))}
         </ol>
