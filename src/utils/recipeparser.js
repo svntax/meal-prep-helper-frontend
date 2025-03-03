@@ -20,7 +20,7 @@ Recipe object after cleaning and parsing (to be displayed in components):
         "description": "",
         "prepTime": "",
         "ingredients": [],
-        "instructions": ""
+        "instructions": []
     }
 }
 

@@ -3,7 +3,7 @@ import Image from "next/image";
 
 const RecipeCard = ({ recipe }) => {
   return (
-    <div className="w-full max-w-xl rounded overflow-hidden shadow-lg">
+    <div className="w-full rounded overflow-hidden shadow-lg">
       <Image
         src="/assets/images/dish_example_1.png"
         alt={recipe.recipe_data.title}
@@ -23,7 +23,8 @@ const RecipeCard = ({ recipe }) => {
           {recipe.recipe_data.description}
         </p>
       </div>
-      <div className="px-6">
+      <div className="flex">
+        <div className="w-1/2 px-6">
         <h3 className="font-bold mb-2">Ingredients</h3>
         <ul>
           {recipe.recipe_data.ingredients.map((ingredient) => (
@@ -33,7 +34,7 @@ const RecipeCard = ({ recipe }) => {
           ))}
         </ul>
       </div>
-      <div className="px-6 py-4">
+        <div className="w-1/2 px-6">
         <h3 className="font-bold mb-2">Instructions</h3>
         <ol>
           {recipe.recipe_data.instructions.map((instruction, index) => (
@@ -42,6 +43,7 @@ const RecipeCard = ({ recipe }) => {
             </li>
           ))}
         </ol>
+      </div>
       </div>
       <div className="px-6 py-4">
         <div className="font-bold text-base">

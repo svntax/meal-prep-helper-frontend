@@ -5,15 +5,37 @@ import { ChefHat, PlusCircle, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ChatInterface from "@/components/chat-interface"
+import RecipeCarousel from "@/components/recipes/recipes-carousel"
 
 export default function Home() {
+  const saveRecipe = async (recipe) => {
+    console.log(recipe);
+    /* try {
+      const response = await fetch('/api/recipe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(recipe),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to save recipe');
+      }
+  
+      console.log('Recipe saved successfully');
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+    } */
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Head>
         <title>Meal Prep Helper - Get Recipe Ideas</title>
         <meta
           name="description"
-          content="Ask our AI assisstant for recipe ideas, cooking tips, or meal plans."
+          content="Ask our AI assistant for recipe ideas, cooking tips, or meal plans."
         />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -61,20 +83,20 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row justify-center">
-                  <Button size="lg" className="bg-orange-600 hover:bg-orange-700">
-                    <Link href="/chat">
+                  <Button size="lg" className="bg-orange-600 hover:bg-orange-700" onClick={(e) => e.preventDefault()} onMouseUp={() => window.scrollTo({ top: document.getElementById('ask-ai').offsetTop, behavior: 'smooth' })}>
                       Get Started
-                    </Link>
                   </Button>
-                  <Button size="lg" variant="outline">
-                  <Link href="/recipes">Browse Recipes</Link>
+                  <Button asChild size="lg" variant="outline" className="rounded-none">
+                    <Link href="/recipes">
+                      Browse Recipes
+                    </Link>
                   </Button>
                 </div>
               </div>
             </div>
           </div>
         </section>
-        <section className="container px-4 py-12 md:px-6">
+        <section id="ask-ai" className="container px-4 py-12 md:px-6">
           <div className="mx-auto max-w-3xl space-y-4">
             <h2 className="text-center text-3xl font-bold">Ask Our AI Assistant</h2>
             <p className="text-center text-muted-foreground">
@@ -82,6 +104,76 @@ export default function Home() {
             </p>
             <ChatInterface />
           </div>
+          <RecipeCarousel className={"mx-auto max-w-3xl space-y-4"}
+            recipes={[
+              {
+                recipe_data: {
+                  title: "Grilled Salmon with Asparagus",
+                  prepTime: "25 minutes",
+                  description: "A delicious and healthy meal that is sure to please.",
+                  ingredients: [
+                    { amount: "2", ingredient: "salmon fillets" },
+                    { amount: "1 bunch", ingredient: "asparagus" },
+                    { amount: "2 tbsp", ingredient: "olive oil" },
+                    { amount: "1 tsp", ingredient: "lemon juice" },
+                    { amount: "1 tsp", ingredient: "dill" },
+                  ],
+                  instructions: [
+                    "Preheat the grill or grill pan to medium-high heat.",
+                    "Trim the asparagus and toss with olive oil, lemon juice, and dill.",
+                    "Grill the salmon for 5-7 minutes per side, or until cooked through.",
+                    "Grill the asparagus for 3-4 minutes until tender.",
+                    "Serve the salmon with the asparagus on the side.",
+                  ],
+                },
+                source_url: "https://www.foodnetwork.com/grilled-salmon-with-asparagus",
+              },
+              {
+                recipe_data: {
+                  title: "Spaghetti Carbonara",
+                  prepTime: "20 minutes",
+                  description: "A classic Italian dish that is sure to satisfy.",
+                  ingredients: [
+                    { amount: "1 pound", ingredient: "spaghetti" },
+                    { amount: "4 slices", ingredient: "bacon, diced" },
+                    { amount: "4 cloves", ingredient: "garlic, minced" },
+                    { amount: "1/2 cup", ingredient: "parmesan cheese, grated" },
+                    { amount: "1/4 cup", ingredient: "heavy cream" },
+                  ],
+                  instructions: [
+                    "Cook the spaghetti according to package instructions.",
+                    "In a large skillet, cook the bacon until crispy. Remove the bacon and set it aside.",
+                    "In the same skillet, cook the garlic until fragrant.",
+                    "Add the cooked spaghetti to the skillet, and toss with the bacon and garlic.",
+                    "Stir in the grated parmesan cheese and heavy cream until the mixture is smooth and creamy.",
+                    "Serve the spaghetti carbonara hot.",
+                  ],
+                },
+                source_url: "https://www.foodnetwork.com/spaghetti-carbonara",
+              },
+              {
+                recipe_data: {
+                  title: "Avocado Toast",
+                  prepTime: "5 minutes",
+                  description: "A healthy and delicious breakfast or brunch option.",
+                  ingredients: [
+                    { amount: "2 slices", ingredient: "whole grain toast" },
+                    { amount: "1/2 avocado", ingredient: "peeled and diced" },
+                    { amount: "1 tsp", ingredient: "olive oil" },
+                    { amount: "1 slice", ingredient: "crumbled feta cheese" },
+                  ],
+                  instructions: [
+                    "Toast the bread to your desired level of crispness.",
+                    "In a small bowl, mix the diced avocado, olive oil, and feta cheese.",
+                    "Spread the avocado mixture on one slice of the toast, and sprinkle with the remaining feta cheese.",
+                    "Enjoy your delicious avocado toast.",
+                  ],
+                },
+                source_url: "https://www.foodnetwork.com/avocado-toast",
+              },
+            ]}
+            onSave={(recipe) => saveRecipe(recipe)}
+          />
         </section>
       </main>
       <footer className="border-t py-6 md:py-0">
