@@ -45,7 +45,7 @@ recipe_data field in Recipe object:
 
 // Removes whitespace and escape characters from agent responses
 const cleanDataString = (dataString) => {
-    return dataString.replace('\"', '"').replace('\n', '').replace('`', '');
+    return dataString.replaceAll('\"', '"').replaceAll('\n', '').replaceAll('`', '');
 }
 
 const getRecipeDataFromRawString = (rawDataString) => {
