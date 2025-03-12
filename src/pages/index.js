@@ -56,6 +56,9 @@ export default function Home() {
         if(localStorage.getItem(SIGN_IN_AUTH_KEY)){
           setUserAuthenticated(true);
         }
+        else{
+          setUserAuthenticated(false);
+        }
       }
     } else {
       console.log("User is not signed in");
@@ -285,8 +288,8 @@ export default function Home() {
             <p className="text-center text-muted-foreground">
               Get personalized recipe ideas, cooking tips, and more with our AI-powered assistant.
             </p>
-            <ChatInterface sendMessage={() => { handleSubmit() } } updateUserInput={setInputValue} 
-            fetchingInProgress={isLoading}
+            <ChatInterface sendMessage={() => { handleSubmit() } } updateUserInput={setInputValue}  promptLogin={wallet.signIn} promptSignMessage={promptSignMessage}
+            fetchingInProgress={isLoading} userIsAuthenticated={userAuthenticated} userIsSignedIn={signedAccountId}
             />
           </div>
           <RecipeCarousel className={"mx-auto max-w-3xl space-y-4"}

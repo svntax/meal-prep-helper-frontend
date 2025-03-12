@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { isUserAuthenticated } from "@/utils/openai";
 
-export default function ChatInterface({ sendMessage, updateUserInput, fetchingInProgress }) {
+export default function ChatInterface({ promptLogin, promptSignMessage, sendMessage, updateUserInput, fetchingInProgress, userIsAuthenticated, userIsSignedIn }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,25 +19,40 @@ export default function ChatInterface({ sendMessage, updateUserInput, fetchingIn
     updateUserInput(event.target.value);
   };
 
-  // TODO: AI agent call
+  const handleUserAuth = () => {
+    if(userIsSignedIn){
+      // Prompt sign message
+      promptSignMessage();
+    }
+    else{
+      promptLogin();
+    }
+  };
+
+  // AI agent call only if user is signed in and authenticated
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (input.trim()) {
-      setIsLoading(true);
-      const userMessage = { id: messages.length + 1, role: "user", content: input };
-      setMessages([...messages, userMessage]);
-      setTimeout(() => {
-
-        // Simulate assistant response
+    if(userIsSignedIn && userIsAuthenticated){
+      if (input.trim()) {
+        setIsLoading(true);
+        const userMessage = { id: messages.length + 1, role: "user", content: input };
+        setMessages([...messages, userMessage]);
         setTimeout(() => {
-          setMessages((messages) => [ // Update messages using functional update to avoid stale state
-            ...messages,
-            { id: messages.length + 1, role: "assistant", content: "A delicious recipe is on its way!" },
-          ]);
-          setIsLoading(false);
-          sendMessage();
+  
+          // Simulate assistant response
+          setTimeout(() => {
+            setMessages((messages) => [ // Update messages using functional update to avoid stale state
+              ...messages,
+              { id: messages.length + 1, role: "assistant", content: "A delicious recipe is on its way!" },
+            ]);
+            setIsLoading(false);
+            sendMessage();
+          }, 1000);
         }, 1000);
-      }, 1000);
+      }
+    }
+    else{
+      handleUserAuth();
     }
   };
 
@@ -46,6 +62,7 @@ export default function ChatInterface({ sendMessage, updateUserInput, fetchingIn
         <CardTitle>Recipe Assistant</CardTitle>
       </CardHeader>
       <CardContent>
+        {(userIsAuthenticated && userIsSignedIn ? 
         <ScrollArea className="h-[400px] pr-4">
           {messages.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center space-y-4 p-8 text-center">
@@ -122,6 +139,15 @@ export default function ChatInterface({ sendMessage, updateUserInput, fetchingIn
             </div>
           )}
         </ScrollArea>
+        : <div className="flex justify-center p-4">
+            <button
+              onClick={handleUserAuth}
+              className="px-4 py-2 rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              {userIsSignedIn ? "Sign Message to Chat" : "Login to Chat"}
+            </button>
+          </div>
+        )}
       </CardContent>
       <CardFooter>
         <form onSubmit={handleSubmit} className="flex w-full items-center space-x-2">
@@ -130,8 +156,9 @@ export default function ChatInterface({ sendMessage, updateUserInput, fetchingIn
             value={input}
             onChange={handleInputChange}
             className={`flex-1 ring-2 ring-orange-500`}
+            disabled={!userIsAuthenticated || !userIsSignedIn}
           />
-          <Button type="submit" size="icon" disabled={isLoading || fetchingInProgress || !input.trim()} className={"!ml-1"}>
+          <Button type="submit" size="icon" disabled={isLoading || fetchingInProgress || !input.trim() || (!userIsSignedIn || !userIsAuthenticated)} className={"!ml-1"}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>
